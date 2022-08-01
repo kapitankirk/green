@@ -1,0 +1,245 @@
+C:\WINDOWS\system32>cd C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2>minikube.exe docker-env
+SET DOCKER_TLS_VERIFY=1
+SET DOCKER_HOST=tcp://127.0.0.1:50696
+SET DOCKER_CERT_PATH=C:\Users\dimash.umbetalyev\.minikube\certs
+SET MINIKUBE_ACTIVE_DOCKERD=minikube
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp\app>docker build -t pg_kub2_config:v1 .
+Successfully built f78be10f513c
+Successfully tagged pg_kub2_config:v1
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp>kubectl apply -f app.yaml
+configmap/game-demo created
+pod/configmap-demo-pod created
+
+
+
+{"PASSWORD": "123", "DATA": ["enemy.types=aliens,monsters\n", "player.maximum-lives=5 \n"], "PLAYER_INITIAL_LIVES": "3", "HOSTNAME": "configmap-demo-pod"}
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp>kubectl port-forward configmap-demo-pod 8000:80
+Forwarding from 127.0.0.1:8000 -> 80
+Forwarding from [::1]:8000 -> 80
+Handling connection for 8000
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp>kubectl get pod configmap-demo-pod -o yaml | kubectl replace --force -f -
+pod "configmap-demo-pod" deleted
+pod/configmap-demo-pod replaced
+
+{"HOSTNAME": "configmap-demo-pod", "PLAYER_INITIAL_LIVES": "13", "DATA": ["enemy.types=aliens,monsters\n", "player.maximum-lives=9 \n"], "PASSWORD": "123"}
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\persistentVolume>kubectl apply -f infra.yaml -f deployment.yaml
+persistentvolumeclaim/storage created
+service/persistent-service created
+ingress.networking.k8s.io/ingress created
+deployment.apps/persistent created
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\persistentVolume\app>docker build -t pg_kub2_pers:v1 .
+Sending build context to Docker daemon  4.608kB
+Step 1/3 : FROM python:3.5-onbuild
+# Executing 3 build triggers
+ ---> Using cache
+ ---> Using cache
+ ---> 03d86481788f
+Step 2/3 : EXPOSE 8000
+ ---> Running in ece87e3e997b
+Removing intermediate container ece87e3e997b
+ ---> 2b56b7609708
+Step 3/3 : ENTRYPOINT ["python", "/usr/src/app/app.py"]
+ ---> Running in 6f8743c8dc9c
+Removing intermediate container 6f8743c8dc9c
+ ---> fa590cdb7c01
+Successfully built fa590cdb7c01
+Successfully tagged pg_kub2_pers:v1
+SECURITY WARNING: You are building a Docker image from Windows against a non-Windows Docker host. All files and directories added to build context will have '-rwxr-xr-x' permissions. It is recommended to double check and reset permissions for sensitive files and directories.
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\persistentVolume>kubectl apply -f infra.yaml -f deployment.yaml
+persistentvolumeclaim/storage created
+service/persistent-service created
+ingress.networking.k8s.io/ingress created
+deployment.apps/persistent created
+
+C:\WINDOWS\system32>cd C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2>minikube tunnel
+* Tunnel successfully started
+
+* NOTE: Please do not close this terminal as this process must stay alive for the tunnel to be accessible ...
+
+! Access to ports below 1024 may fail on Windows with OpenSSH clients older than v8.1. For more information, see: https://minikube.sigs.k8s.io/docs/handbook/accessing/#access-to-ports-1024-on-windows-requires-root-permission
+! Access to ports below 1024 may fail on Windows with OpenSSH clients older than v8.1. For more information, see: https://minikube.sigs.k8s.io/docs/handbook/accessing/#access-to-ports-1024-on-windows-requires-root-permission
+* Starting tunnel for service hello-ingress.
+* Starting tunnel for service ingress.
+
+в браузере зашёл по адресу http://localhost/storage 
+вышла
+FileNotFoundError
+FileNotFoundError: [Errno 2] No such file or directory: '/storage/state.txt'
+
+после 
+
+{"STATE": "data1", "HOSTNAME": "persistent-7844c5bcd6-5l8v6"}
+{"HOSTNAME": "persistent-7844c5bcd6-d9trb", "STATE": "data1"}
+после изменение данных data1 / реплики не добавлял только два пода.
+
+{"HOSTNAME": "persistent-7844c5bcd6-d9trb", "STATE": "data27"}
+{"STATE": "data27", "HOSTNAME": "persistent-7844c5bcd6-5l8v6"}
+
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\persistentVolume>kubectl apply -f stateful.yaml -f infra-stateful.yaml
+statefulset.apps/statefulset-app created
+service/statefulset-service created
+
+localhost/state
+FileNotFoundError
+FileNotFoundError: [Errno 2] No such file or directory: '/storage/state.txt'
+
+
+http://localhost:8000/set?data=data20
+{"HOSTNAME": "statefulset-app-0", "STATE": "data20"}
+
+http://localhost:8001/set?data=data27
+{"STATE": "data27", "HOSTNAME": "statefulset-app-1"}
+
+Postgresql
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\postgres>kubectl apply -f postgres.yaml
+service/postgres created
+statefulset.apps/postgres-statefulset created
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\postgres>kubectl port-forward postgres-statefulset-0 5432:5432
+Forwarding from 127.0.0.1:5432 -> 5432
+Forwarding from [::1]:5432 -> 5432
+
+
+
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\postgres\app>docker build -t pg_kub2_postgres:v1 .
+Successfully built a5657a62dad3
+Successfully tagged pg_kub2_postgres:v1
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\postgres>kubectl apply -f secrets.yaml -f app-config.yaml -f deployment.yaml -f service.yaml
+secret/pg-secret created
+configmap/pg-config created
+deployment.apps/pg-deployment created
+service/pg-service created
+
+
+дальше сделал, проброс порта
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\persistentVolume>kubectl port-forward pg-deployment-7847768fcc-zqxbf 8002:80
+Forwarding from 127.0.0.1:8002 -> 80
+Forwarding from [::1]:8002 -> 80
+Handling connection for 8002
+Handling connection for 8002
+
+и по localhost http://localhost:8002/
+
+Bonjour from pg-deployment-7847768fcc-zqxbf!
+
+и http://localhost:8002/db
+sqlalchemy.exc.ProgrammingError
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "client" does not exist
+LINE 1: select id, name from client;
+                             ^
+
+[SQL: select id, name from client;]
+(Background on this error at: http://sqlalche.me/e/13/f405)
+
+заходим в psql 
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp>"C:\Program Files\PostgreSQL\13\bin\psql.exe" -h localhost -p 5432 -U myuser -W myapp
+Пароль:
+psql (13.7, сервер 14.4 (Debian 14.4-1.pgdg110+1))
+ПРЕДУПРЕЖДЕНИЕ: psql имеет базовую версию 13, а сервер - 14.
+                Часть функций psql может не работать.
+ПРЕДУПРЕЖДЕНИЕ: Кодовая страница консоли (866) отличается от основной
+                страницы Windows (1251).
+                8-битовые (русские) символы могут отображаться некорректно.
+                Подробнее об этом смотрите документацию psql, раздел
+                "Notes for Windows users".
+Введите "help", чтобы получить справку.
+
+myapp=#
+yapp=# CREATE TABLE client(id serial, name text);
+CREATE TABLE
+myapp=# INSERT INTO client(name) values('Dimash');
+INSERT 0 1
+
+теперь при обращении в http://localhost:8002/db
+
+[{"id": 1, "name": "Dimash"}
+
+добавим еще данные 
+yapp=# INSERT INTO client(name) values('IVAN');
+INSERT 0 1
+myapp=# INSERT INTO client(name) values('Lexus');
+INSERT 0 1
+myapp=#
+
+при обращении в http://localhost:8002/db
+
+страница отвечает: 
+[{"id": 1, "name": "Dimash"}, {"id": 2, "name": "IVAN"}, {"id": 3, "name": "Lexus"}]
+
+как и домашнее задание поднят вэб сервис и сам postgresql на миникубике.
+
+миникубик на винде , через docker desktop
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp>docker ps
+CONTAINER ID   IMAGE                                 COMMAND                  CREATED      STATUS          PORTS                                                                                                                                  NAMES
+0c4c8378a60b   gcr.io/k8s-minikube/kicbase:v0.0.32   "/usr/local/bin/entr…"   4 days ago   Up 57 minutes   127.0.0.1:50695->22/tcp, 127.0.0.1:50696->2376/tcp, 127.0.0.1:50698->5000/tcp, 127.0.0.1:50699->8443/tcp, 127.0.0.1:50697->32443/tcp   minikube
+
+Docker внутри миникуба.
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub2\exp>docker ps
+CONTAINER ID   IMAGE                  COMMAND                  CREATED          STATUS          PORTS                                      NAMES
+c5a2af236709   1042d9e0d8fc           "/dashboard --insecu…"   44 minutes ago   Up 44 minutes                                              k8s_kubernetes-dashboard_kubernetes-dashboard-5fd5574d9f-r75kg_kubernetes-dashboard_e5534c8b-d8a4-4e68-8329-85fd86723cfa_7
+89526868d7ac   6e38f40d628d           "/storage-provisioner"   44 minutes ago   Up 44 minutes                                              k8s_storage-provisioner_storage-provisioner_kube-system_6b6cdc4e-0f8e-4159-a76e-f84c0fb4673c_11
+893983d51583   fa590cdb7c01           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_app_statefulset-app-0_default_46a8f62f-0b79-4a10-ae4c-e2f5f74ecd8b_1
+0878473dade5   576c1cd0d49f           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_hello-demo_hello-demo_default_63d73193-75e3-40c1-a051-8ddb091c289d_3
+8d6e4e3edb73   postgres               "docker-entrypoint.s…"   44 minutes ago   Up 44 minutes                                              k8s_postgres_postgres-statefulset-0_default_ba7d5dff-c72a-453e-85cd-0f0c88905351_1
+a8c97b23a798   fa590cdb7c01           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_app_persistent-7844c5bcd6-5l8v6_default_c1924c88-3d61-4a1e-812a-f73eb93a16c2_1
+3385bf08a1f7   115053965e86           "/metrics-sidecar"       44 minutes ago   Up 44 minutes                                              k8s_dashboard-metrics-scraper_dashboard-metrics-scraper-78dbd9dbf5-lfb5r_kubernetes-dashboard_a62bfb63-b943-419e-8e49-cdeeeb2d1174_3
+d0cc8d25a5f8   576c1cd0d49f           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_hello-demo_hello-rs-demo-7jlmp_default_e9ae319d-97e0-4a58-8a15-980ed4c7b985_3
+613b5b095891   a5657a62dad3           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_pg-app_pg-deployment-7847768fcc-zqxbf_default_221dd1d6-9a7a-42ed-a70d-24f952489bba_1
+a8e4fbd6300b   75bdf78d9d67           "/usr/bin/dumb-init …"   44 minutes ago   Up 44 minutes                                              k8s_controller_ingress-nginx-controller-755dfbfc65-fnnnw_ingress-nginx_4e305cb6-c24f-495b-84ca-0b08cf6e3867_3
+9b00465a2b31   f78be10f513c           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_demo_configmap-demo-pod_default_d95e088e-9b08-4cc6-9481-34608e117ebe_3
+8b81e668e557   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_statefulset-app-0_default_46a8f62f-0b79-4a10-ae4c-e2f5f74ecd8b_1
+2043d8d17b6b   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_hello-demo_default_63d73193-75e3-40c1-a051-8ddb091c289d_3
+94e1416020dc   fa590cdb7c01           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_app_statefulset-app-1_default_9f220809-4ba7-45e0-8b63-cb111857c720_1
+f831e1842502   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_persistent-7844c5bcd6-5l8v6_default_c1924c88-3d61-4a1e-812a-f73eb93a16c2_1
+440a5e4891e4   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_dashboard-metrics-scraper-78dbd9dbf5-lfb5r_kubernetes-dashboard_a62bfb63-b943-419e-8e49-cdeeeb2d1174_3
+f6a274494c8f   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_hello-rs-demo-7jlmp_default_e9ae319d-97e0-4a58-8a15-980ed4c7b985_3
+cfd3d83d9c7b   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_configmap-demo-pod_default_d95e088e-9b08-4cc6-9481-34608e117ebe_3
+71896d1871ae   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_pg-deployment-7847768fcc-zqxbf_default_221dd1d6-9a7a-42ed-a70d-24f952489bba_1
+59fe5afc9ace   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes   0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp   k8s_POD_ingress-nginx-controller-755dfbfc65-fnnnw_ingress-nginx_4e305cb6-c24f-495b-84ca-0b08cf6e3867_3
+eccf8f9f6686   a4ca41631cc7           "/coredns -conf /etc…"   44 minutes ago   Up 44 minutes                                              k8s_coredns_coredns-6d4b75cb6d-dvr6t_kube-system_d2ba41f5-fe88-4b06-bb5e-f6a1e6c70d42_3
+1cab956d0bee   576c1cd0d49f           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_hello-py_hello-deployment-6f75dd7f75-5hfg6_default_83a3ccf6-8245-48e1-8d72-7944f18aef8b_3
+8dee2f689b34   beb86f5d8e6c           "/usr/local/bin/kube…"   44 minutes ago   Up 44 minutes                                              k8s_kube-proxy_kube-proxy-5swxs_kube-system_8cd91424-bfac-498d-b40c-65a12c2d99ca_3
+4ed28930c866   a5657a62dad3           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_pg-app_pg-deployment-7847768fcc-pks4k_default_c2445303-abff-485b-a079-a169978d5583_1
+e82fa797a7f7   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_statefulset-app-1_default_9f220809-4ba7-45e0-8b63-cb111857c720_1
+5930e4eadac1   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_postgres-statefulset-0_default_ba7d5dff-c72a-453e-85cd-0f0c88905351_1
+394cc6660b92   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_kube-proxy-5swxs_kube-system_8cd91424-bfac-498d-b40c-65a12c2d99ca_3
+81c7adae266a   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_coredns-6d4b75cb6d-dvr6t_kube-system_d2ba41f5-fe88-4b06-bb5e-f6a1e6c70d42_3
+d8d5207ae2f3   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_storage-provisioner_kube-system_6b6cdc4e-0f8e-4159-a76e-f84c0fb4673c_3
+af570e01dd99   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_kubernetes-dashboard-5fd5574d9f-r75kg_kubernetes-dashboard_e5534c8b-d8a4-4e68-8329-85fd86723cfa_3
+e250aaefc5cb   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_hello-deployment-6f75dd7f75-5hfg6_default_83a3ccf6-8245-48e1-8d72-7944f18aef8b_3
+b2c128dba13d   fa590cdb7c01           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_app_persistent-7844c5bcd6-d9trb_default_f41eb410-3ac2-482e-abba-cd334a3176a7_1
+63de0be4901d   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_pg-deployment-7847768fcc-pks4k_default_c2445303-abff-485b-a079-a169978d5583_1
+500f7011572d   576c1cd0d49f           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_hello-py_hello-deployment-6f75dd7f75-xdqzw_default_c945026d-81e7-40ec-aec6-5dee834c6f14_3
+09ea9dcaac53   576c1cd0d49f           "python /usr/src/app…"   44 minutes ago   Up 44 minutes                                              k8s_hello-demo_hello-rs-demo-2bzrb_default_bbc0b95f-4ad0-44a1-8257-9f6f6142c5b0_3
+95fd128b44ad   k8s.gcr.io/pause:3.6   "/pause"                 44 minutes ago   Up 44 minutes                                              k8s_POD_persistent-7844c5bcd6-d9trb_default_f41eb410-3ac2-482e-abba-cd334a3176a7_1
+6cacce88efd5   k8s.gcr.io/pause:3.6   "/pause"                 45 minutes ago   Up 44 minutes                                              k8s_POD_hello-rs-demo-2bzrb_default_bbc0b95f-4ad0-44a1-8257-9f6f6142c5b0_3
+4f2f3f0d785a   k8s.gcr.io/pause:3.6   "/pause"                 45 minutes ago   Up 44 minutes                                              k8s_POD_hello-deployment-6f75dd7f75-xdqzw_default_c945026d-81e7-40ec-aec6-5dee834c6f14_3
+71f1fd224a77   18688a72645c           "kube-scheduler --au…"   45 minutes ago   Up 45 minutes                                              k8s_kube-scheduler_kube-scheduler-minikube_kube-system_bab0508344d11c6fdb45b1f91c440ff5_3
+d4f65ca827a6   e9f4b425f919           "kube-apiserver --ad…"   45 minutes ago   Up 45 minutes                                              k8s_kube-apiserver_kube-apiserver-minikube_kube-system_6580cebb2d04c6c59385cf58e278b0a6_3
+16efee3bd5d4   aebe758cef4c           "etcd --advertise-cl…"   45 minutes ago   Up 45 minutes                                              k8s_etcd_etcd-minikube_kube-system_906edd533192a4db2396a938662a5271_3
+a5a5ee34a196   b4ea7e648530           "kube-controller-man…"   45 minutes ago   Up 45 minutes                                              k8s_kube-controller-manager_kube-controller-manager-minikube_kube-system_b4f7419eaf4a6f0ee6121d47723a0c8d_3
+2960a31a6f7e   k8s.gcr.io/pause:3.6   "/pause"                 45 minutes ago   Up 45 minutes                                              k8s_POD_kube-controller-manager-minikube_kube-system_b4f7419eaf4a6f0ee6121d47723a0c8d_3
+df2fc07e861c   k8s.gcr.io/pause:3.6   "/pause"                 45 minutes ago   Up 45 minutes                                              k8s_POD_kube-apiserver-minikube_kube-system_6580cebb2d04c6c59385cf58e278b0a6_3
+8830857e3014   k8s.gcr.io/pause:3.6   "/pause"                 45 minutes ago   Up 45 minutes                                              k8s_POD_etcd-minikube_kube-system_906edd533192a4db2396a938662a5271_3
+03948253c2e2   k8s.gcr.io/pause:3.6   "/pause"                 45 minutes ago   Up 45 minutes                                              k8s_POD_kube-scheduler-minikube_kube-system_bab0508344d11c6fdb45b1f91c440ff5_3
