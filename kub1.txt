@@ -1,0 +1,197 @@
+После установки Docker Desktop и minikube
+Создается контейнер на винде.
+Дальше чтобы подключиться на сам Docker внутри minikube 
+Делаем такой шаг. 
+Запускаем от имени адм \cmd и пишем docker ps
+видем наш на винде контейнер миникуба. 
+пишем дальше
+C:\WINDOWS\system32>minikube docker-env
+SET DOCKER_TLS_VERIFY=1
+SET DOCKER_HOST=tcp://127.0.0.1:51175
+SET DOCKER_CERT_PATH=C:\Users\dimash.umbetalyev\.minikube\certs
+SET MINIKUBE_ACTIVE_DOCKERD=minikube
+REM To point your shell to minikube's docker-daemon, run:
+REM @FOR /f "tokens=*" %i IN ('minikube -p minikube docker-env --shell cmd') DO @%i
+
+в отдельном окне cmd от имени админа пишем
+ SET DOCKER_TLS_VERIFY=1
+SET DOCKER_HOST=tcp://127.0.0.1:51175
+SET DOCKER_CERT_PATH=C:\Users\dimash.umbetalyev\.minikube\certs
+SET MINIKUBE_ACTIVE_DOCKERD=minikube
+
+и дальше в этом окне уже получаем доступ до docker который находится внутри minikube
+
+C:\WINDOWS\system32>docker ps
+CONTAINER ID   IMAGE                          COMMAND                  CREATED         STATUS         PORTS     NAMES
+a01df7b8052c   kubernetesui/metrics-scraper   "/metrics-sidecar"       4 minutes ago   Up 4 minutes             k8s_dashboard-metrics-scraper_dashboard-metrics-scraper-78dbd9dbf5-lfb5r_kubernetes-dashboard_a62bfb63-b943-419e-8e49-cdeeeb2d1174_0
+23df92adf237   kubernetesui/dashboard         "/dashboard --insecu…"   4 minutes ago   Up 4 minutes             k8s_kubernetes-dashboard_kubernetes-dashboard-5fd5574d9f-r75kg_kubernetes-dashboard_e5534c8b-d8a4-4e68-8329-85fd86723cfa_0
+9b7857a7ea1d   k8s.gcr.io/pause:3.6           "/pause"                 4 minutes ago   Up 4 minutes             k8s_POD_dashboard-metrics-scraper-78dbd9dbf5-lfb5r_kubernetes-dashboard_a62bfb63-b943-419e-8e49-cdeeeb2d1174_0
+85338c15d0d4   k8s.gcr.io/pause:3.6           "/pause"                 4 minutes ago   Up 4 minutes             k8s_POD_kubernetes-dashboard-5fd5574d9f-r75kg_kubernetes-dashboard_e5534c8b-d8a4-4e68-8329-85fd86723cfa_0
+fc34233089db   6e38f40d628d                   "/storage-provisioner"   8 minutes ago   Up 8 minutes             k8s_storage-provisioner_storage-provisioner_kube-system_6b6cdc4e-0f8e-4159-a76e-f84c0fb4673c_1
+05d793b2a431   a4ca41631cc7                   "/coredns -conf /etc…"   8 minutes ago   Up 8 minutes             k8s_coredns_coredns-6d4b75cb6d-dvr6t_kube-system_d2ba41f5-fe88-4b06-bb5e-f6a1e6c70d42_0
+cf8aca55f18a   k8s.gcr.io/pause:3.6           "/pause"                 8 minutes ago   Up 8 minutes             k8s_POD_coredns-6d4b75cb6d-dvr6t_kube-system_d2ba41f5-fe88-4b06-bb5e-f6a1e6c70d42_0
+cab0074d6473   beb86f5d8e6c                   "/usr/local/bin/kube…"   8 minutes ago   Up 8 minutes             k8s_kube-proxy_kube-proxy-5swxs_kube-system_8cd91424-bfac-498d-b40c-65a12c2d99ca_0
+58bf5e9591d3   k8s.gcr.io/pause:3.6           "/pause"                 8 minutes ago   Up 8 minutes             k8s_POD_kube-proxy-5swxs_kube-system_8cd91424-bfac-498d-b40c-65a12c2d99ca_0
+effbc1328896   k8s.gcr.io/pause:3.6           "/pause"                 8 minutes ago   Up 8 minutes             k8s_POD_storage-provisioner_kube-system_6b6cdc4e-0f8e-4159-a76e-f84c0fb4673c_0
+a065045eba3b   e9f4b425f919                   "kube-apiserver --ad…"   9 minutes ago   Up 9 minutes             k8s_kube-apiserver_kube-apiserver-minikube_kube-system_6580cebb2d04c6c59385cf58e278b0a6_0
+7708e01165ec   k8s.gcr.io/pause:3.6           "/pause"                 9 minutes ago   Up 9 minutes             k8s_POD_kube-apiserver-minikube_kube-system_6580cebb2d04c6c59385cf58e278b0a6_0
+d9b04f935806   18688a72645c                   "kube-scheduler --au…"   9 minutes ago   Up 9 minutes             k8s_kube-scheduler_kube-scheduler-minikube_kube-system_bab0508344d11c6fdb45b1f91c440ff5_0
+943edd261307   b4ea7e648530                   "kube-controller-man…"   9 minutes ago   Up 9 minutes             k8s_kube-controller-manager_kube-controller-manager-minikube_kube-system_b4f7419eaf4a6f0ee6121d47723a0c8d_0
+e1deafe8f3b1   aebe758cef4c                   "etcd --advertise-cl…"   9 minutes ago   Up 9 minutes             k8s_etcd_etcd-minikube_kube-system_906edd533192a4db2396a938662a5271_0
+169de098fbb0   k8s.gcr.io/pause:3.6           "/pause"                 9 minutes ago   Up 9 minutes             k8s_POD_kube-scheduler-minikube_kube-system_bab0508344d11c6fdb45b1f91c440ff5_0
+2edc92cf63f9   k8s.gcr.io/pause:3.6           "/pause"                 9 minutes ago   Up 9 minutes             k8s_POD_etcd-minikube_kube-system_906edd533192a4db2396a938662a5271_0
+b99990a02ade   k8s.gcr.io/pause:3.6           "/pause"                 9 minutes ago   Up 9 minutes             k8s_POD_kube-controller-manager-minikube_kube-system_b4f7419eaf4a6f0ee6121d47723a0c8d_0
+
+Дальше буилдим 
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\app>docker build -t pg_kub1_app:v1 .
+всё показывать не буду, так как много данных будет.
+Successfully built 576c1cd0d49f
+Successfully tagged pg_kub1_app:v1
+
+
+дальше создание пода.
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl apply -f pod.yaml
+pod/hello-demo created
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl get pods
+NAME         READY   STATUS    RESTARTS   AGE
+hello-demo   1/1     Running   0          3m21s
+
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>minikube ssh
+Last login: Thu Jul 28 10:11:42 2022 from 192.168.49.1
+docker@minikube:~$ curl 172.17.0.5
+Hello world from hello-demo ! v 2021-2docker@minikube:~$
+docker@minikube:~$ curl 172.17.0.5/health
+{"status": "ok"}docker@minikube:~$
+
+дальше 
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl port-forward hello-demo 8000:80
+Forwarding from 127.0.0.1:8000 -> 80
+Forwarding from [::1]:8000 -> 80
+Handling connection for 8000
+Handling connection for 8000
+в браузере 
+Hello world from hello-demo ! v 2021-2
+
+Создание реплики подов. 
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl apply -f rs.yaml
+replicaset.apps/hello-rs-demo created
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl get pods
+NAME                  READY   STATUS    RESTARTS   AGE
+hello-demo            1/1     Running   0          25m
+hello-rs-demo-2bzrb   1/1     Running   0          35s
+hello-rs-demo-7jlmp   1/1     Running   0          35s
+
+в конфиге rs.yaml было указано 3 пода в спецификации. 
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl apply -f deployment.yaml
+deployment.apps/hello-deployment created
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+hello-demo                          1/1     Running   0          35m
+hello-deployment-6f75dd7f75-5hfg6   1/1     Running   0          32s
+hello-deployment-6f75dd7f75-xdqzw   1/1     Running   0          32s
+hello-rs-demo-2bzrb                 1/1     Running   0          10m
+hello-rs-demo-7jlmp                 1/1     Running   0          10m
+
+дальше 
+
+Service 
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl apply -f service.yaml
+service/hello-service created
+
+minikube sevice hello-service --url -n pg-kub1
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>minikube service list
+|----------------------|---------------------------|--------------|---------------------------|
+|      NAMESPACE       |           NAME            | TARGET PORT  |            URL            |
+|----------------------|---------------------------|--------------|---------------------------|
+| default              | hello-service             |         9000 | http://192.168.49.2:32162 |
+| default              | kubernetes                | No node port |
+| kube-system          | kube-dns                  | No node port |
+| kubernetes-dashboard | dashboard-metrics-scraper | No node port |
+| kubernetes-dashboard | kubernetes-dashboard      | No node port |
+|----------------------|---------------------------|--------------|---------------------------|
+
+не достучался. 
+через ssh есть доступ. 
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>minikube ssh
+Last login: Thu Jul 28 10:15:21 2022 from 192.168.49.1
+docker@minikube:~$ curl 10.96.160.191:9000
+Hello world from hello-deployment-6f75dd7f75-xdqzw ! v 2021-2docker@minikube:~$
+Hello world from hello-deployment-6f75dd7f75-5hfg6 ! v 2021-2docker@minikube:~$ curl 10.96.160.191:9000
+Hello world from hello-deployment-6f75dd7f75-xdqzw ! v 2021-2docker@minikube:~$ curl 10.96.160.191:9000
+Hello world from hello-deployment-6f75dd7f75-xdqzw ! v 2021-2docker@minikube:~$ curl 10.96.160.191:9000
+Hello world from hello-deployment-6f75dd7f75-5hfg6 ! v 2021-2docker@minikube:~$
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>minikube addons list
+|-----------------------------|----------|--------------|--------------------------------|
+|         ADDON NAME          | PROFILE  |    STATUS    |           MAINTAINER           |
+|-----------------------------|----------|--------------|--------------------------------|
+| ambassador                  | minikube | disabled     | 3rd party (Ambassador)         |
+| auto-pause                  | minikube | disabled     | Google                         |
+| csi-hostpath-driver         | minikube | disabled     | Kubernetes                     |
+| dashboard                   | minikube | enabled ✅   | Kubernetes                     |
+| default-storageclass        | minikube | enabled ✅   | Kubernetes                     |
+| efk                         | minikube | disabled     | 3rd party (Elastic)            |
+| freshpod                    | minikube | disabled     | Google                         |
+| gcp-auth                    | minikube | disabled     | Google                         |
+| gvisor                      | minikube | disabled     | Google                         |
+| headlamp                    | minikube | disabled     | kinvolk.io                     |
+| helm-tiller                 | minikube | disabled     | 3rd party (Helm)               |
+| inaccel                     | minikube | disabled     | InAccel <info@inaccel.com>     |
+| ingress                     | minikube | disabled     | 3rd party (unknown)            |
+| ingress-dns                 | minikube | disabled     | Google                         |
+| istio                       | minikube | disabled     | 3rd party (Istio)              |
+| istio-provisioner           | minikube | disabled     | 3rd party (Istio)              |
+| kong                        | minikube | disabled     | 3rd party (Kong HQ)            |
+| kubevirt                    | minikube | disabled     | 3rd party (KubeVirt)           |
+| logviewer                   | minikube | disabled     | 3rd party (unknown)            |
+| metallb                     | minikube | disabled     | 3rd party (MetalLB)            |
+| metrics-server              | minikube | disabled     | Kubernetes                     |
+| nvidia-driver-installer     | minikube | disabled     | Google                         |
+| nvidia-gpu-device-plugin    | minikube | disabled     | 3rd party (Nvidia)             |
+| olm                         | minikube | disabled     | 3rd party (Operator Framework) |
+| pod-security-policy         | minikube | disabled     | 3rd party (unknown)            |
+| portainer                   | minikube | disabled     | Portainer.io                   |
+| registry                    | minikube | disabled     | Google                         |
+| registry-aliases            | minikube | disabled     | 3rd party (unknown)            |
+| registry-creds              | minikube | disabled     | 3rd party (UPMC Enterprises)   |
+| storage-provisioner         | minikube | enabled ✅   | Google                         |
+| storage-provisioner-gluster | minikube | disabled     | 3rd party (unknown)            |
+| volumesnapshots             | minikube | disabled     | Kubernetes                     |
+|-----------------------------|----------|--------------|--------------------------------|
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>minikube addons enable ingress
+* After the addon is enabled, please run "minikube tunnel" and your ingress resources would be available at "127.0.0.1"
+  - Используется образ k8s.gcr.io/ingress-nginx/controller:v1.2.1
+  - Используется образ k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1
+  - Используется образ k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1
+* Verifying ingress addon...
+* The 'ingress' addon is enabled
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>kubectl apply -f ingress.yaml
+ingress.networking.k8s.io/hello-ingress created
+
+
+C:\Users\dimash.umbetalyev\Desktop\kubernetes\kub1\manifests>minikube tunnel
+* Tunnel successfully started
+
+* NOTE: Please do not close this terminal as this process must stay alive for the tunnel to be accessible ...
+
+! Access to ports below 1024 may fail on Windows with OpenSSH clients older than v8.1. For more information, see: https://minikube.sigs.k8s.io/docs/handbook/accessing/#access-to-ports-1024-on-windows-requires-root-permission
+* Starting tunnel for service hello-ingress.
+
+в браузере по адресу http://localhost/myapp
+Hello world from hello-deployment-6f75dd7f75-xdqzw ! v 2021-2
+Hello world from hello-deployment-6f75dd7f75-5hfg6 ! v 2021-2
+Hello world from hello-deployment-6f75dd7f75-xdqzw ! v 2021-2
+после каждого refresh разные поды.
