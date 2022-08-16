@@ -1,0 +1,134 @@
+
+Загрузка данных в PostgreSQL и тестирование больших данных
+
+
+root@postgres:~# cd /tmp/
+root@postgres:/tmp# gsutil -m cp gs://bqstorage2795/taxi-01000000000000 .
+Copying gs://bqstorage2795/taxi-01000000000000...
+| [1/1 files][254.9 MiB/254.9 MiB] 100% Done                                    
+Operation completed over 1 objects/254.9 MiB.  
+
+root@postgres:~/gcsfuse# mkdir bqstorage2795
+root@postgres:~/gcsfuse# gcsfuse bqstorage2795
+2022/08/08 14:46:01.553397 Start gcsfuse/0.41.5 (Go version go1.18.4) for app "" using mount point: /root/gcsfuse/bqstorage2795
+2022/08/08 14:46:01.573029 Opening GCS connection...
+2022/08/08 14:46:01.575456 Mounting file system "gcsfuse"...
+2022/08/08 14:46:01.577872 File system has been successfully mounted.
+
+root@postgres:~# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/root        29G  2.6G   27G   9% /
+devtmpfs        2.0G     0  2.0G   0% /dev
+tmpfs           2.0G   28K  2.0G   1% /dev/shm
+tmpfs           393M  956K  392M   1% /run
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           2.0G     0  2.0G   0% /sys/fs/cgroup
+/dev/loop0       62M   62M     0 100% /snap/core20/1518
+/dev/loop1       56M   56M     0 100% /snap/core18/2409
+/dev/loop2      299M  299M     0 100% /snap/google-cloud-cli/48
+/dev/loop3       68M   68M     0 100% /snap/lxd/22753
+/dev/loop4       47M   47M     0 100% /snap/snapd/16292
+/dev/sda15      105M  5.2M  100M   5% /boot/efi
+/dev/loop5       56M   56M     0 100% /snap/core18/2538
+/dev/loop6       62M   62M     0 100% /snap/core20/1587
+/dev/loop7      303M  303M     0 100% /snap/google-cloud-cli/56
+tmpfs           393M     0  393M   0% /run/user/1002
+gcsfuse         1.0P     0  1.0P   0% /root/gcsfuse/bqstorage2795
+
+root@postgres:~# sudo su - postgres
+postgres@postgres:~$ psql
+psql (14.4 (Ubuntu 14.4-1.pgdg20.04+1))
+Type "help" for help.
+
+postgres=# create extension file_fdw;
+CREATE EXTENSION
+postgres=# create server pgcsv foreign data wrapper file_fdw;
+CREATE SERVER
+
+
+но локально скачать и загрузить получилось 
+postgres-# options(filename '/tmp/taxi-01000000000000', format 'csv', header 'true', delimiter ',');  // этот адрес 
+
+postgres=# \timing
+Timing is on.
+postgres=# select count(*) from taxi_trips_fdw_2;
+ count  
+--------
+ 656696
+(1 row)
+
+Time: 3996.764 ms (00:03.997)
+
+postgres=# create table taxi as select * from taxi_trips_fdw_2;
+SELECT 656696
+Time: 8055.749 ms (00:08.056)
+
+postgres=# select count(*) from taxi;
+ count  
+--------
+ 656696
+(1 row)
+
+Time: 199.749 ms
+
+postgres=# create table taxi_trips (
+postgres(# unique_key text, 
+postgres(# taxi_id text, 
+postgres(# trip_start_timestamp TIMESTAMP, 
+postgres(# trip_end_timestamp TIMESTAMP, 
+postgres(# trip_seconds bigint, 
+postgres(# trip_miles numeric, 
+postgres(# pickup_census_tract bigint, 
+postgres(# dropoff_census_tract bigint, 
+postgres(# pickup_community_area bigint, 
+postgres(# dropoff_community_area bigint, 
+postgres(# fare numeric, 
+postgres(# tips numeric, 
+postgres(# tolls numeric, 
+postgres(# extras numeric, 
+postgres(# trip_total numeric, 
+postgres(# payment_type text, 
+postgres(# company text, 
+postgres(# pickup_latitude numeric, 
+postgres(# pickup_longitude numeric, 
+postgres(# pickup_location text, 
+postgres(# dropoff_latitude numeric, 
+postgres(# dropoff_longitude numeric, 
+postgres(# dropoff_location text
+postgres(# );
+CREATE TABLE
+Time: 7.420 ms
+
+postgres=# COPY taxi_trips(unique_key, 
+postgres(# taxi_id, 
+postgres(# trip_start_timestamp, 
+postgres(# trip_end_timestamp, 
+postgres(# trip_seconds, 
+postgres(# trip_miles, 
+postgres(# pickup_census_tract, 
+postgres(# dropoff_census_tract, 
+postgres(# pickup_community_area, 
+postgres(# dropoff_community_area, 
+postgres(# fare, 
+postgres(# tips, 
+postgres(# tolls, 
+postgres(# extras, 
+postgres(# trip_total, 
+postgres(# payment_type, 
+postgres(# company, 
+postgres(# pickup_latitude, 
+postgres(# pickup_longitude, 
+postgres(# pickup_location, 
+postgres(# dropoff_latitude, 
+postgres(# dropoff_longitude, 
+postgres(# dropoff_location)
+postgres-# FROM PROGRAM 'awk FNR-1 /tmp/taxi-000000000000.csv | cat' DELIMITER ',' CSV HEADER;
+COPY 0
+Time: 14.516 ms
+
+полностью  73.32 GB bigquery-public-data.chicago_taxi_trips.taxi_trips - не стал загружать в postgres , так как уже понятно что Столбцовая СУБД быстрее для аналитических данных либо приложении.
+
+
+
+
+
