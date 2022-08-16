@@ -1,0 +1,400 @@
+root@clickhouse:~# wget http://prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-complete.csv
+--2022-08-16 04:42:13--  http://prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-complete.csv
+Resolving prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com (prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com)... 52.218.117.60
+Connecting to prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com (prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com)|52.218.117.60|:80... connected.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: http://prod1.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-complete.csv [following]
+--2022-08-16 04:42:14--  http://prod1.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-complete.csv
+Resolving prod1.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com (prod1.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com)... 52.218.104.180
+Connecting to prod1.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com (prod1.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com)|52.218.104.180|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 4783785454 (4.5G) [text/csv]
+Saving to: ‘pp-complete.csv’
+
+pp-complete.csv                                              100%[===========================================================================================================================================>]   4.46G  26.7MB/s    in 2m 51s  
+
+
+
+
+
+root@clickhouse:~# clickhouse-client --password
+ClickHouse client version 22.2.2.1.
+Password for user (default): 
+Connecting to localhost:9000 as user default.
+Connected to ClickHouse server version 22.2.2 revision 54455.
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) CREATE TABLE uk_price_paid
+                                                         (
+                                                             price UInt32,
+                                                             date Date,
+                                                             postcode1 LowCardinality(String),
+                                                             postcode2 LowCardinality(String),
+                                                             type Enum8('terraced' = 1, 'semi-detached' = 2, 'detached' = 3, 'flat' = 4, 'other' = 0),
+                                                             is_new UInt8,
+                                                             duration Enum8('freehold' = 1, 'leasehold' = 2, 'unknown' = 0),
+                                                             addr1 String,
+                                                             addr2 String,
+                                                             street LowCardinality(String),
+                                                             locality LowCardinality(String),
+                                                             town LowCardinality(String),
+                                                             district LowCardinality(String),
+                                                             county LowCardinality(String),
+                                                             category UInt8
+                                                         ) ENGINE = MergeTree ORDER BY (postcode1, postcode2, addr1, addr2);
+
+CREATE TABLE uk_price_paid
+(
+    `price` UInt32,
+    `date` Date,
+    `postcode1` LowCardinality(String),
+    `postcode2` LowCardinality(String),
+    `type` Enum8('terraced' = 1, 'semi-detached' = 2, 'detached' = 3, 'flat' = 4, 'other' = 0),
+    `is_new` UInt8,
+    `duration` Enum8('freehold' = 1, 'leasehold' = 2, 'unknown' = 0),
+    `addr1` String,
+    `addr2` String,
+    `street` LowCardinality(String),
+    `locality` LowCardinality(String),
+    `town` LowCardinality(String),
+    `district` LowCardinality(String),
+    `county` LowCardinality(String),
+    `category` UInt8
+)
+ENGINE = MergeTree
+ORDER BY (postcode1, postcode2, addr1, addr2)
+
+Query id: 3b618c6c-fd8f-4f89-a5ab-27c44028a8e9
+
+Ok.
+
+0 rows in set. Elapsed: 0.011 sec. 
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) show tables
+
+SHOW TABLES
+
+Query id: 63ba0627-2876-4298-90db-c17c20a6362c
+
+┌─name──────────┐
+│ test          │
+│ uk_price_paid │
+└───────────────┘
+
+2 rows in set. Elapsed: 0.003 sec.
+
+
+дальше загрузка в таблицу 
+root@clickhouse:~# clickhouse-local --input-format CSV --structure '
+    uuid String,
+    price UInt32,
+    time DateTime,
+    postcode String,
+    a String,
+    b String,
+    c String,
+    addr1 String,
+    addr2 String,
+    street String,
+    locality String,
+    town String,
+    district String,
+    county String,
+    d String,
+    e String
+' --query "
+    WITH splitByChar(' ', postcode) AS p
+    SELECT
+        price,
+        toDate(time) AS date,
+        p[1] AS postcode1,
+        p[2] AS postcode2,
+        transform(a, ['T', 'S', 'D', 'F', 'O'], ['terraced', 'semi-detached', 'detached', 'flat', 'other']) AS type,
+        b = 'Y' AS is_new,
+        transform(c, ['F', 'L', 'U'], ['freehold', 'leasehold', 'unknown']) AS duration,
+        addr1,
+        addr2,
+        street,
+        locality,
+        town,
+        district,
+        county,
+        d = 'B' AS category
+    FROM table" --date_time_input_format best_effort < pp-complete.csv | clickhouse-client --password --query "INSERT INTO uk_price_paid FORMAT TSV"
+
+
+    clickhouse.us-central1-a.c.postgres-27011995.internal :) SELECT count() FROM uk_price_paid;
+
+SELECT count()
+FROM uk_price_paid
+
+Query id: c46ca61e-44f7-49e2-84b6-ca26176ed817
+
+┌──count()─┐
+│ 27359802 │
+└──────────┘
+
+1 rows in set. Elapsed: 0.070 sec
+
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) SELECT formatReadableSize(total_bytes) FROM system.tables WHERE name = 'uk_price_paid';
+
+SELECT formatReadableSize(total_bytes)
+FROM system.tables
+WHERE name = 'uk_price_paid'
+
+Query id: 508ab41a-9fb6-4874-9d50-3dc9a8006a93
+
+┌─formatReadableSize(total_bytes)─┐
+│ 294.91 MiB                      │
+└─────────────────────────────────┘
+
+1 rows in set. Elapsed: 0.003 sec. 
+
+
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) SELECT formatReadableSize(total_bytes) FROM system.tables WHERE name = 'uk_price_paid';
+
+SELECT formatReadableSize(total_bytes)
+FROM system.tables
+WHERE name = 'uk_price_paid'
+
+Query id: 508ab41a-9fb6-4874-9d50-3dc9a8006a93
+
+┌─formatReadableSize(total_bytes)─┐
+│ 294.91 MiB                      │
+└─────────────────────────────────┘
+
+1 rows in set. Elapsed: 0.003 sec. 
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) SELECT toYear(date) AS year, round(avg(price)) AS price, bar(price, 0, 1000000, 80) FROM uk_price_paid GROUP BY year ORDER BY year;
+
+SELECT
+    toYear(date) AS year,
+    round(avg(price)) AS price,
+    bar(price, 0, 1000000, 80)
+FROM uk_price_paid
+GROUP BY year
+ORDER BY year ASC
+
+Query id: ae4d34b8-3959-412e-890f-de84998881f5
+
+┌─year─┬──price─┬─bar(round(avg(price)), 0, 1000000, 80)─┐
+│ 1995 │  67933 │ █████▍                                 │
+│ 1996 │  71508 │ █████▋                                 │
+│ 1997 │  78536 │ ██████▎                                │
+│ 1998 │  85440 │ ██████▋                                │
+│ 1999 │  96038 │ ███████▋                               │
+│ 2000 │ 107487 │ ████████▌                              │
+│ 2001 │ 118888 │ █████████▌                             │
+│ 2002 │ 137947 │ ███████████                            │
+│ 2003 │ 155893 │ ████████████▍                          │
+│ 2004 │ 178888 │ ██████████████▎                        │
+│ 2005 │ 189359 │ ███████████████▏                       │
+│ 2006 │ 203532 │ ████████████████▎                      │
+│ 2007 │ 219375 │ █████████████████▌                     │
+│ 2008 │ 217055 │ █████████████████▎                     │
+│ 2009 │ 213419 │ █████████████████                      │
+│ 2010 │ 236107 │ ██████████████████▊                    │
+│ 2011 │ 232802 │ ██████████████████▌                    │
+│ 2012 │ 238381 │ ███████████████████                    │
+│ 2013 │ 256928 │ ████████████████████▌                  │
+│ 2014 │ 279982 │ ██████████████████████▍                │
+│ 2015 │ 297264 │ ███████████████████████▋               │
+│ 2016 │ 313494 │ █████████████████████████              │
+│ 2017 │ 346348 │ ███████████████████████████▋           │
+│ 2018 │ 350547 │ ████████████████████████████           │
+│ 2019 │ 352105 │ ████████████████████████████▏          │
+│ 2020 │ 375843 │ ██████████████████████████████         │
+│ 2021 │ 380525 │ ██████████████████████████████▍        │
+│ 2022 │ 354501 │ ████████████████████████████▎          │
+└──────┴────────┴────────────────────────────────────────┘
+
+28 rows in set. Elapsed: 0.757 sec. Processed 27.36 million rows, 164.16 MB (36.15 million rows/s., 216.92 MB/s.)
+
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) SELECT toYear(date) AS year, round(avg(price)) AS price, bar(price, 0, 2000000, 100) FROM uk_price_paid WHERE town = 'LONDON' GROUP BY year ORDER BY year;
+
+SELECT
+    toYear(date) AS year,
+    round(avg(price)) AS price,
+    bar(price, 0, 2000000, 100)
+FROM uk_price_paid
+WHERE town = 'LONDON'
+GROUP BY year
+ORDER BY year ASC
+
+Query id: 24796080-fea5-4295-80ed-bda92528dcaf
+
+┌─year─┬───price─┬─bar(round(avg(price)), 0, 2000000, 100)───────────────┐
+│ 1995 │  109112 │ █████▍                                                │
+│ 1996 │  118660 │ █████▊                                                │
+│ 1997 │  136527 │ ██████▋                                               │
+│ 1998 │  153001 │ ███████▋                                              │
+│ 1999 │  180633 │ █████████                                             │
+│ 2000 │  215849 │ ██████████▋                                           │
+│ 2001 │  232989 │ ███████████▋                                          │
+│ 2002 │  263666 │ █████████████▏                                        │
+│ 2003 │  278426 │ █████████████▊                                        │
+│ 2004 │  304664 │ ███████████████▏                                      │
+│ 2005 │  322887 │ ████████████████▏                                     │
+│ 2006 │  356195 │ █████████████████▋                                    │
+│ 2007 │  404063 │ ████████████████████▏                                 │
+│ 2008 │  420741 │ █████████████████████                                 │
+│ 2009 │  427754 │ █████████████████████▍                                │
+│ 2010 │  480306 │ ████████████████████████                              │
+│ 2011 │  496251 │ ████████████████████████▋                             │
+│ 2012 │  519479 │ █████████████████████████▊                            │
+│ 2013 │  616199 │ ██████████████████████████████▋                       │
+│ 2014 │  724124 │ ████████████████████████████████████▏                 │
+│ 2015 │  792101 │ ███████████████████████████████████████▌              │
+│ 2016 │  843596 │ ██████████████████████████████████████████▏           │
+│ 2017 │  983539 │ █████████████████████████████████████████████████▏    │
+│ 2018 │ 1016786 │ ██████████████████████████████████████████████████▋   │
+│ 2019 │ 1041818 │ ████████████████████████████████████████████████████  │
+│ 2020 │ 1061608 │ █████████████████████████████████████████████████████ │
+│ 2021 │  961001 │ ████████████████████████████████████████████████      │
+│ 2022 │  856953 │ ██████████████████████████████████████████▋           │
+└──────┴─────────┴───────────────────────────────────────────────────────┘
+
+28 rows in set. Elapsed: 0.194 sec. Processed 27.36 million rows, 80.55 MB (140.90 million rows/s., 414.81 MB/s.)
+
+
+
+clickhouse.us-central1-a.c.postgres-27011995.internal :) SELECT
+                                                             town,
+                                                             district,
+                                                             count() AS c,
+                                                             round(avg(price)) AS price,
+                                                             bar(price, 0, 5000000, 100)
+                                                         FROM uk_price_paid
+                                                         WHERE date >= '2020-01-01'
+                                                         GROUP BY
+                                                             town,
+                                                             district
+                                                         HAVING c >= 100
+                                                         ORDER BY price DESC
+                                                         LIMIT 100;
+
+SELECT
+    town,
+    district,
+    count() AS c,
+    round(avg(price)) AS price,
+    bar(price, 0, 5000000, 100)
+FROM uk_price_paid
+WHERE date >= '2020-01-01'
+GROUP BY
+    town,
+    district
+HAVING c >= 100
+ORDER BY price DESC
+LIMIT 100
+
+Query id: b5db7e7c-531e-4e7b-bcbf-795588ee2186
+
+┌─town─────────────────┬─district───────────────┬─────c─┬───price─┬─bar(round(avg(price)), 0, 5000000, 100)──────────────────────────┐
+│ LONDON               │ CITY OF LONDON         │   558 │ 3191771 │ ███████████████████████████████████████████████████████████████▋ │
+│ LONDON               │ CITY OF WESTMINSTER    │  6790 │ 2896830 │ █████████████████████████████████████████████████████████▊       │
+│ LONDON               │ KENSINGTON AND CHELSEA │  4779 │ 2332143 │ ██████████████████████████████████████████████▋                  │
+│ LEATHERHEAD          │ ELMBRIDGE              │   194 │ 1999125 │ ███████████████████████████████████████▊                         │
+│ VIRGINIA WATER       │ RUNNYMEDE              │   299 │ 1921039 │ ██████████████████████████████████████▍                          │
+│ LONDON               │ CAMDEN                 │  5522 │ 1682486 │ █████████████████████████████████▋                               │
+│ WINDLESHAM           │ SURREY HEATH           │   173 │ 1446386 │ ████████████████████████████▊                                    │
+│ NORTHWOOD            │ THREE RIVERS           │   105 │ 1410591 │ ████████████████████████████▏                                    │
+│ BARNET               │ ENFIELD                │   248 │ 1352153 │ ███████████████████████████                                      │
+│ LONDON               │ ISLINGTON              │  5288 │ 1292056 │ █████████████████████████▋                                       │
+│ LONDON               │ RICHMOND UPON THAMES   │  1294 │ 1261499 │ █████████████████████████▏                                       │
+│ COBHAM               │ ELMBRIDGE              │   706 │ 1251476 │ █████████████████████████                                        │
+│ BEACONSFIELD         │ BUCKINGHAMSHIRE        │   660 │ 1204750 │ ████████████████████████                                         │
+│ LONDON               │ TOWER HAMLETS          │  9490 │ 1182523 │ ███████████████████████▋                                         │
+│ KINGSTON UPON THAMES │ RICHMOND UPON THAMES   │   139 │ 1161503 │ ███████████████████████▏                                         │
+│ LONDON               │ HOUNSLOW               │  1225 │ 1156383 │ ███████████████████████▏                                         │
+│ BURFORD              │ WEST OXFORDSHIRE       │   178 │ 1143671 │ ██████████████████████▋                                          │
+│ RICHMOND             │ RICHMOND UPON THAMES   │  1575 │ 1136078 │ ██████████████████████▋                                          │
+│ ASCOT                │ WINDSOR AND MAIDENHEAD │   739 │ 1113495 │ ██████████████████████▎                                          │
+│ LONDON               │ HAMMERSMITH AND FULHAM │  5926 │ 1053271 │ █████████████████████                                            │
+│ RADLETT              │ HERTSMERE              │   506 │ 1049416 │ ████████████████████▊                                            │
+│ WEYBRIDGE            │ ELMBRIDGE              │  1227 │ 1038546 │ ████████████████████▋                                            │
+│ LEATHERHEAD          │ GUILDFORD              │   343 │ 1031390 │ ████████████████████▋                                            │
+│ ESHER                │ ELMBRIDGE              │   871 │ 1030997 │ ████████████████████▌                                            │
+│ FARNHAM              │ EAST HAMPSHIRE         │   104 │ 1022202 │ ████████████████████▍                                            │
+│ GERRARDS CROSS       │ BUCKINGHAMSHIRE        │   809 │  979706 │ ███████████████████▌                                             │
+│ SALCOMBE             │ SOUTH HAMS             │   210 │  970362 │ ███████████████████▍                                             │
+│ CHALFONT ST GILES    │ BUCKINGHAMSHIRE        │   276 │  970159 │ ███████████████████▍                                             │
+│ SURBITON             │ ELMBRIDGE              │   176 │  960725 │ ███████████████████▏                                             │
+│ SUTTON COLDFIELD     │ LICHFIELD              │   106 │  947059 │ ██████████████████▊                                              │
+│ BROCKENHURST         │ NEW FOREST             │   220 │  946638 │ ██████████████████▊                                              │
+│ OXFORD               │ SOUTH OXFORDSHIRE      │   615 │  933050 │ ██████████████████▋                                              │
+│ EAST MOLESEY         │ ELMBRIDGE              │   356 │  921200 │ ██████████████████▍                                              │
+│ GUILDFORD            │ WAVERLEY               │   248 │  898298 │ █████████████████▊                                               │
+│ HARPENDEN            │ ST ALBANS              │  1218 │  892579 │ █████████████████▋                                               │
+│ LONDON               │ MERTON                 │  4164 │  887606 │ █████████████████▋                                               │
+│ HENLEY-ON-THAMES     │ SOUTH OXFORDSHIRE      │  1013 │  886789 │ █████████████████▋                                               │
+│ POTTERS BAR          │ WELWYN HATFIELD        │   311 │  863564 │ █████████████████▎                                               │
+│ LONDON               │ WANDSWORTH             │ 12642 │  851588 │ █████████████████                                                │
+│ LUTTERWORTH          │ HARBOROUGH             │  1065 │  848372 │ ████████████████▊                                                │
+│ BILLINGSHURST        │ CHICHESTER             │   247 │  846184 │ ████████████████▊                                                │
+│ LONDON               │ HACKNEY                │  6423 │  841888 │ ████████████████▋                                                │
+│ LONDON               │ SOUTHWARK              │  7441 │  834688 │ ████████████████▋                                                │
+│ KINGSTON UPON THAMES │ KINGSTON UPON THAMES   │  1790 │  832204 │ ████████████████▋                                                │
+│ INGATESTONE          │ CHELMSFORD             │   116 │  822547 │ ████████████████▍                                                │
+│ LONDON               │ EALING                 │  5344 │  815658 │ ████████████████▎                                                │
+│ EAST GRINSTEAD       │ TANDRIDGE              │   102 │  810161 │ ████████████████▏                                                │
+│ MARLOW               │ BUCKINGHAMSHIRE        │   692 │  807428 │ ████████████████▏                                                │
+│ TWICKENHAM           │ RICHMOND UPON THAMES   │  2118 │  806354 │ ████████████████▏                                                │
+│ PETWORTH             │ CHICHESTER             │   282 │  801134 │ ████████████████                                                 │
+│ HASLEMERE            │ CHICHESTER             │   217 │  797274 │ ███████████████▊                                                 │
+│ HINDHEAD             │ WAVERLEY               │   228 │  794836 │ ███████████████▊                                                 │
+│ TEDDINGTON           │ RICHMOND UPON THAMES   │  1100 │  788178 │ ███████████████▋                                                 │
+│ LONDON               │ BARNET                 │  7785 │  784157 │ ███████████████▋                                                 │
+│ CHIGWELL             │ EPPING FOREST          │   472 │  782351 │ ███████████████▋                                                 │
+│ BERKHAMSTED          │ DACORUM                │  1009 │  780047 │ ███████████████▌                                                 │
+│ WEMBLEY              │ BRENT                  │  1628 │  779545 │ ███████████████▌                                                 │
+│ WOKING               │ GUILDFORD              │   325 │  778950 │ ███████████████▌                                                 │
+│ STOCKBRIDGE          │ TEST VALLEY            │   303 │  775770 │ ███████████████▌                                                 │
+│ SOLIHULL             │ STRATFORD-ON-AVON      │   140 │  773402 │ ███████████████▍                                                 │
+│ MAIDENHEAD           │ BUCKINGHAMSHIRE        │   224 │  766549 │ ███████████████▎                                                 │
+│ GREAT MISSENDEN      │ BUCKINGHAMSHIRE        │   410 │  762167 │ ███████████████▏                                                 │
+│ LONDON               │ BRENT                  │  3929 │  759492 │ ███████████████▏                                                 │
+│ BELVEDERE            │ BEXLEY                 │   654 │  754974 │ ███████████████                                                  │
+│ LONDON               │ LAMBETH                │  9955 │  754735 │ ███████████████                                                  │
+│ KINGS LANGLEY        │ DACORUM                │   268 │  754211 │ ███████████████                                                  │
+│ EGHAM                │ RUNNYMEDE              │   951 │  752288 │ ███████████████                                                  │
+│ THAMES DITTON        │ ELMBRIDGE              │   450 │  747820 │ ██████████████▊                                                  │
+│ TADWORTH             │ REIGATE AND BANSTEAD   │   880 │  746016 │ ██████████████▊                                                  │
+│ RICKMANSWORTH        │ THREE RIVERS           │  1431 │  744348 │ ██████████████▊                                                  │
+│ SEVENOAKS            │ SEVENOAKS              │  2108 │  742954 │ ██████████████▋                                                  │
+│ CRANBROOK            │ TUNBRIDGE WELLS        │   745 │  739585 │ ██████████████▋                                                  │
+│ WELWYN               │ WELWYN HATFIELD        │   387 │  737140 │ ██████████████▋                                                  │
+│ BOURNE END           │ BUCKINGHAMSHIRE        │   255 │  736623 │ ██████████████▋                                                  │
+│ ALDERLEY EDGE        │ CHESHIRE EAST          │   347 │  735268 │ ██████████████▋                                                  │
+│ HARLOW               │ EPPING FOREST          │   166 │  735065 │ ██████████████▋                                                  │
+│ LONDON               │ HARINGEY               │  6160 │  729418 │ ██████████████▌                                                  │
+│ CHISLEHURST          │ BROMLEY                │   837 │  726756 │ ██████████████▌                                                  │
+│ AMERSHAM             │ BUCKINGHAMSHIRE        │   934 │  725851 │ ██████████████▌                                                  │
+│ NORTHWOOD            │ HILLINGDON             │   539 │  721909 │ ██████████████▍                                                  │
+│ SLOUGH               │ BUCKINGHAMSHIRE        │   804 │  720465 │ ██████████████▍                                                  │
+│ PURFLEET             │ THURROCK               │   144 │  719342 │ ██████████████▍                                                  │
+│ EPSOM                │ REIGATE AND BANSTEAD   │   289 │  718754 │ ██████████████▍                                                  │
+│ FELTHAM              │ HOUNSLOW               │  1482 │  716678 │ ██████████████▎                                                  │
+│ OXTED                │ TANDRIDGE              │   591 │  713970 │ ██████████████▎                                                  │
+│ BETCHWORTH           │ MOLE VALLEY            │   150 │  712917 │ ██████████████▎                                                  │
+│ ASHTEAD              │ MOLE VALLEY            │   510 │  709786 │ ██████████████▏                                                  │
+│ LECHLADE             │ COTSWOLD               │   152 │  704899 │ ██████████████                                                   │
+│ READING              │ SOUTH OXFORDSHIRE      │   580 │  704632 │ ██████████████                                                   │
+│ INGATESTONE          │ BRENTWOOD              │   291 │  701442 │ ██████████████                                                   │
+│ TUNBRIDGE WELLS      │ WEALDEN                │   197 │  697238 │ █████████████▊                                                   │
+│ PINNER               │ HARROW                 │   963 │  696616 │ █████████████▊                                                   │
+│ LEWES                │ WEALDEN                │   114 │  694250 │ █████████████▊                                                   │
+│ OXFORD               │ VALE OF WHITE HORSE    │   635 │  692328 │ █████████████▋                                                   │
+│ WALTON-ON-THAMES     │ ELMBRIDGE              │  1792 │  692096 │ █████████████▋                                                   │
+│ WOODSTOCK            │ WEST OXFORDSHIRE       │   263 │  689587 │ █████████████▋                                                   │
+│ MAYFIELD             │ WEALDEN                │   172 │  689070 │ █████████████▋                                                   │
+│ OXFORD               │ OXFORD                 │  3489 │  687627 │ █████████████▋                                                   │
+│ WATLINGTON           │ SOUTH OXFORDSHIRE      │   184 │  687055 │ █████████████▋                                                   │
+│ REIGATE              │ REIGATE AND BANSTEAD   │  1143 │  684717 │ █████████████▋                                                   │
+└──────────────────────┴────────────────────────┴───────┴─────────┴──────────────────────────────────────────────────────────────────┘
+
+100 rows in set. Elapsed: 0.225 sec. Processed 27.36 million rows, 73.21 MB (121.37 million rows/s., 324.75 MB/s.)
+
+Столкнулся с проблемой загрузки данных, прочитал много информации по поводу как загружать данные в clickhouse и на саму виртуальную машину. Вроде как тестово загрузил данные в clickhouse и протестировал время.
